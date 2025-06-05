@@ -20,22 +20,19 @@ function App() {
   }
 
   // Kiểm tra đã claim chưa
-  const checkIfClaimed = async () => {
-    try {
-      if (!window.ethereum) return;
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      const contract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, ClaimABI, signer);
-      const address = await signer.getAddress();
-      const claimed = await contract.hasClaimed(address);
-      setHasClaimed(claimed);
-    } catch (err) {
-      console.error("Lỗi kiểm tra claim:", err);
-    }
-  };
+  useEffect(() => {
+    const checkClaimed = async () => {
+      if (window.ethereum && account) {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const contract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, ClaimABI, provider);
+        const claimed = await contract.hasClaimed(account);
+        setHasClaimed(claimed);
+      }
+    };
+    checkClaimed();
+  }, [account]);
 
-  // Gửi lệnh claim
-  const claimToken = async () => {
+  async function claimToken() {
     if (!window.ethereum) return alert("❌ Vui lòng kết nối MetaMask trước");
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
@@ -45,19 +42,22 @@ function App() {
       const tx = await contract.claim();
       setStatus("⏳ Đang gửi giao dịch... TX: " + tx.hash);
       await tx.wait();
-      setStatus("✅ Nhận GMECOIN thành công!");
-      checkIfClaimed(); // Cập nhật trạng thái
+      setStatus("✅ Nhận GMECOIN thành công!")
+      setHasClaimed(true); // ✅ ẩn nút
     } catch (err) {
       console.error(err);
       setStatus("❌ Lỗi khi nhận GMECOIN: " + err.message);
     }
-  };
+  }
 
-  useEffect(() => {
-    if (window.ethereum && account) {
-      checkIfClaimed();
-    }
-  }, [account]);
+const checkIfClaimed = async () => {
+  if (window.ethereum && account) {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const contract = new ethers.Contract(CLAIM_CONTRACT_ADDRESS, ClaimABI, provider);
+    const claimed = await contract.hasClaimed(account);
+    setHasClaimed(claimed);
+  }
+};
 
   return (
     <div style={{ padding: '2rem', textAlign: 'center' }}>
